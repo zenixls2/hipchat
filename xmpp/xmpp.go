@@ -134,7 +134,7 @@ func (c *Conn) Query() *query {
 	return q
 }
 
-func (c *Conn) Presence(jid, pres string) {
+func (c *Conn) Presence(jid, pres, roomId, name string) {
 	fmt.Fprintf(c.outgoing, xmlPresence, jid, pres)
 }
 
@@ -155,7 +155,7 @@ func (c *Conn) Roster(from, to string) {
 }
 
 func (c *Conn) KeepAlive() {
-	fmt.Fprintf(c.outgoing, " ")
+	fmt.Fprintf(c.outgoing, "<r/>")
 }
 
 func Dial(host string) (*Conn, error) {

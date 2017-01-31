@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/xml"
 	"errors"
+	"strings"
 	"time"
 
-	"github.com/daneharrigan/hipchat/xmpp"
+	"github.com/zenixls2/hipchat/xmpp"
 )
 
 const (
@@ -61,6 +62,13 @@ type Room struct {
 	Privacy         string
 	RoomId          string
 	Topic           string
+}
+
+type Presence struct {
+	Type string
+	From string
+	Room string
+	Name string
 }
 
 // NewClient creates a new Client connection from the user name, password and
@@ -127,8 +135,8 @@ func (c *Client) Users() <-chan []*User {
 
 // Status sends a string to HipChat to indicate whether the client is available
 // to chat, away or idle.
-func (c *Client) Status(s string) {
-	c.connection.Presence(c.Id, s)
+func (c *Client) Status(s, roomId, name string) {
+	c.connection.Presence(c.Id, s, roomId, name)
 }
 
 // Join accepts the room id and the name used to display the client in the
@@ -256,6 +264,23 @@ func (c *Client) listen() {
 				From: attr["from"],
 				To:   attr["to"],
 				Body: c.connection.Body(),
+			}
+		case "presence":
+			attr := xmpp.ToMap(element.Attr)
+			_type := attr["type"]
+			if _type == "" {
+				_type = "available"
+			}
+			split := strings.Split(attr["from"], "/")
+			name := ""
+			if len(split) > 1 {
+				name = split[1]
+			}
+			room := ""
+			if _type == "available" && attr["role"] == "participant" {
+				c.connection.Presence(attr["from"], "enter", room, name)
+			} else if _type == "unavailable" {
+				c.connection.Presence(attr["from"], "leave", room, name)
 			}
 		}
 	}
